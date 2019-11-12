@@ -11,7 +11,6 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
-	"path"
 	"strings"
 	"syscall"
 )
@@ -30,6 +29,42 @@ var (
 	// Release is a semantic version of current build
 	Release = "unset"
 )
+var tmpl = `
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>{{.PageTitle}}</title>
+</head>
+
+
+<body>
+    <h3>{{.PageTitle}}</h3>
+    <p>Metrics Export Link: <a href="/metrics">Metrics</a></p>
+    <p>This exporter is used to expose the following GPU metrics for each GPU</p>
+    <ul>
+        {{range $index, $M :=.Metrics}}
+            <li>{{$M}}</li>
+        {{end}}
+    </ul>
+
+
+<h4>Requirements</h4>
+<ul>
+    <li>nvidia-smi</li>
+</ul>
+
+<h4>Build Information</h4>
+<ul>
+    {{range $key, $value := .VersionInfo}}
+    <li>{{ $key }}: {{ $value }}</li>
+    {{ end }}
+</ul>
+
+
+</body>
+</html>
+`
 
 func getEnv(key, fallback string) string {
 	value := os.Getenv(key)
@@ -64,9 +99,8 @@ func home(w http.ResponseWriter, r *http.Request) {
 		VersionInfo: verInfo,
 	}
 
-	filepath := path.Join(path.Dir("./template/home.html"), "home.html")
-	template.ParseFiles()
-	t, err := template.ParseFiles(filepath)
+	t := template.New("index.html")
+	t, err := t.Parse(tmpl)
 	if err != nil {
 		log.Print("Template parsing error: ", err)
 	}
